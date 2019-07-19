@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="Teleop" pkg="teleop_base_arm" type="Teleop_key" output="screen">
+
+  </node>
+
+  <node name="joint_server" pkg="teleop_base_arm" type="joint_controller" output="screen">
+
+  </node>
+
+  <node name="joint_client" pkg="teleop_base_arm" type="joint_client" output="screen">
+
+  </node>
+</launch>
