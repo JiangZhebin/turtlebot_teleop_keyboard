@@ -1,0 +1,259 @@
+#!/usr/bin/env python
+
+"""A client to control the single joint"""
+
+import rospy, actionlib
+#from _thread import * 
+import control_msgs.msg
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64
+from getkey import getkey, keys
+from geometry_msgs.msg import Twist
+
+#Teleop part
+class Teleoperation_Keyboard():
+	def __init__(self):
+		
+		self.Lspeed=0.1
+		self.Rspeed=0.4
+	def GoForward(self):
+		
+		
+		self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+		move_cmd = Twist()
+		
+		#set default speed
+		move_cmd.linear.x=self.Lspeed
+		move_cmd.angular.z=0
+		self.cmd_vel.publish(move_cmd)
+			
+
+			
+	def GoBackward(self):
+		
+		
+		self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+		move_cmd = Twist()
+
+		#set default speed
+		move_cmd.linear.x=-self.Lspeed
+		move_cmd.angular.z=0
+		
+		self.cmd_vel.publish(move_cmd)
+		
+		
+	
+	def RotateLeft(self):
+		
+		
+		self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+		move_cmd = Twist()
+
+		#set default speed
+		move_cmd.linear.x=0
+		move_cmd.angular.z=self.Rspeed
+		
+		self.cmd_vel.publish(move_cmd)
+		
+
+	def RotateRight(self):
+		
+		
+		self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+		move_cmd = Twist()
+
+		#set default speed
+		move_cmd.linear.x=0
+		move_cmd.angular.z=-self.Rspeed
+	
+		self.cmd_vel.publish(move_cmd)
+		
+
+	def shutdown(self):
+		# stop turtlebot
+		rospy.loginfo("Stop TurtleBot")
+		# a default Twist has linear.x of 0 and angular.z of 0.  So it'll stop TurtleBot
+		self.cmd_vel.publish(Twist())
+		# sleep just makes sure TurtleBot receives the stop command prior to shutting down the script
+		rospy.sleep(1)
+
+#joint client part
+
+def Arm_Shoulder_Pan_Client(goal):
+	client = actionlib.SimpleActionClient('arm_shoulder_pan_action', control_msgs.msg.SingleJointPositionAction)
+	rospy.loginfo('client created')
+	client.wait_for_server()
+	rospy.loginfo('waiting for server')
+
+	client.send_goal(goal)
+	rospy.loginfo('goal sent, waiting for results')
+	client.wait_for_result()
+
+
+def Arm_Forearm_Joint_Client(goal):
+	client = actionlib.SimpleActionClient('arm_forearm_joint_action', control_msgs.msg.SingleJointPositionAction)
+	client.wait_for_server()
+	rospy.loginfo('waiting for server')
+
+	client.send_goal(goal)
+	rospy.loginfo('goal sent, waiting for results')
+	client.wait_for_result()
+
+def Arm_Bicep_Joint_Client(goal):
+	client = actionlib.SimpleActionClient('arm_bicep_joint_action', control_msgs.msg.SingleJointPositionAction)
+	client.wait_for_server()
+	rospy.loginfo('waiting for server')
+
+	client.send_goal(goal)
+	rospy.loginfo('goal sent, waiting for results')
+	client.wait_for_result()
+
+def Arm_Wrist_Flex_Joint_Client(goal):
+	client = actionlib.SimpleActionClient('arm_wrist_flex_joint_action', control_msgs.msg.SingleJointPositionAction)
+	client.wait_for_server()
+	rospy.loginfo('waiting for server')
+
+	client.send_goal(goal)
+	rospy.loginfo('goal sent, waiting for results')
+	client.wait_for_result()
+
+def Gripper_Client(goal):
+	client = actionlib.SimpleActionClient('gripper_action', control_msgs.msg.GripperCommandAction)
+	client.wait_for_server()
+	client.send_goal(goal)
+	client.wait_for_result()
+
+if __name__=='__main__':
+	
+	rospy.init_node('joint_client')
+		
+	arm_shoulder_pan_goal = control_msgs.msg.SingleJointPositionGoal()
+	arm_forearm_joint_goal = control_msgs.msg.SingleJointPositionGoal()
+	arm_bicep_joint_goal = control_msgs.msg.SingleJointPositionGoal()
+	arm_wrist_flex_joint_goal = control_msgs.msg.SingleJointPositionGoal()	
+	gripper_goal = control_msgs.msg.GripperCommandGoal()
+
+
+	arm_shoulder_pan_goal.position =0.00
+	arm_forearm_joint_goal.position =0.00 
+	arm_bicep_joint_goal.position = 0.00
+	arm_wrist_flex_joint_goal.position =0.00 
+	gripper_goal.command.position = 0.025
+
+	#initialization 
+	Arm_Shoulder_Pan_Client(arm_shoulder_pan_goal )
+	Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+	Arm_Bicep_Joint_Client(arm_bicep_joint_goal )
+	Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal) 
+	Gripper_Client(gripper_goal)
+
+
+	Forward = Teleoperation_Keyboard()
+
+	while True:
+		key = getkey()
+		if key == keys.UP:
+			Forward.GoForward()
+		if key == keys.DOWN:
+			Forward.GoBackward()
+		if key == keys.LEFT:
+			Forward.RotateLeft()
+		if key == keys.RIGHT:
+			Forward.RotateRight()
+		if key == '+':
+			Forward.Lspeed = Forward.Lspeed + 0.02
+			Forward.Rspeed = Forward.Rspeed + 0.02
+			rospy.loginfo("Now the speed ist %s, %s", Forward.Lspeed, Forward.Rspeed)
+		if key == '-':
+			Forward.Lspeed = Forward.Lspeed - 0.02
+			Forward.Rspeed = Forward.Rspeed - 0.02
+			rospy.loginfo("Now the speed ist %s, %s", Forward.Lspeed, Forward.Rspeed)
+
+
+		if key == 'q':
+			Forward.shutdown()
+		
+
+		if key == '6':
+			rospy.loginfo('enter aspg')
+			arm_shoulder_pan_goal.position = arm_shoulder_pan_goal.position +0.02 
+			rospy.loginfo('The present position of arm_shoulder_pan is %s', arm_shoulder_pan_goal.position)
+			Arm_Shoulder_Pan_Client(arm_shoulder_pan_goal)
+		if key == '4':
+			arm_shoulder_pan_goal.position = arm_shoulder_pan_goal.position - 0.02
+			Arm_Shoulder_Pan_Client(arm_shoulder_pan_goal)
+		if key == '8':
+			if arm_bicep_joint_goal.position < 1.571:
+				arm_bicep_joint_goal.position = arm_bicep_joint_goal.position + 0.02
+			else:
+				rospy.logwarn('arm_bicep_joint reaches the maximum angle!remain unchanged')
+			if arm_forearm_joint_goal.position <1.571:
+				arm_forearm_joint_goal.position = arm_forearm_joint_goal.position + 0.03 
+			else: 
+				rospy.logwarn('arm_forearm_joint_goal reaches the maximum angle!remain unchanged')
+			Arm_Bicep_Joint_Client(arm_bicep_joint_goal)
+			Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+		if key == '2':
+			if arm_bicep_joint_goal.position > -1.571:
+				arm_bicep_joint_goal.position = arm_bicep_joint_goal.position - 0.02
+			else:
+				rospy.logwarn('arm_bicep_joint reaches the minimum angle!remain unchanged!')
+			if arm_forearm_joint_goal.position > -1.571:
+				arm_forearm_joint_goal.position = arm_forearm_joint_goal.position -0.03
+			else: 
+				rospy.logwarn('arm_forearm_joint reahces the minimum angle! remain unchanged!')
+			Arm_Bicep_Joint_Client(arm_bicep_joint_goal)
+			Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+		if key == '1':
+			gripper_goal.command.position= 0.003
+			Gripper_Client(gripper_goal)
+		if key == '3':
+			gripper_goal.command.position = 0.03
+			Gripper_Client(gripper_goal) 	 
+		if key == '0': 
+			arm_shoulder_pan_goal.position =0.00
+			arm_forearm_joint_goal.position =0.00 
+			arm_bicep_joint_goal.position = 0.00
+			arm_wrist_flex_joint_goal.position =0.00 
+			gripper_goal.command.position = 0.025
+	#initialization 
+			Arm_Shoulder_Pan_Client(arm_shoulder_pan_goal )
+			Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+			Arm_Bicep_Joint_Client(arm_bicep_joint_goal )
+			Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal) 
+			Gripper_Client(gripper_goal)
+
+		if key == '7':
+			arm_wrist_flex_joint_goal.position = arm_wrist_flex_joint_goal.position + 0.02
+			Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal)
+		if key == '9':
+			arm_wrist_flex_joint_goal.position = arm_wrist_flex_joint_goal.position - 0.02
+			Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal)
+
+
+
+		if key == 'k':
+			arm_forearm_joint_goal.position = arm_forearm_joint_goal.position + 0.02
+			Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+		if key == 'l':
+			arm_forearm_joint_goal.position = arm_forearm_joint_goal.position - 0.02
+			Arm_Forearm_Joint_Client(arm_forearm_joint_goal)
+		if key == 'n':
+			arm_bicep_joint_goal.position = arm_bicep_joint_goal.position + 0.02
+			Arm_Bicep_Joint_Client(arm_bicep_joint_goal)
+		if key == 'm':
+			arm_bicep_joint_goal.position = arm_bicep_joint_goal.position - 0.02
+			Arm_Bicep_Joint_Client(arm_bicep_joint_goal)
+		if key == 'h':
+			arm_wrist_flex_joint_goal.position = arm_wrist_flex_joint_goal.position +0.02
+			Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal)
+		if key == 'j':
+			arm_wrist_flex_joint_goal.position = arm_wrist_flex_joint_goal.position -0.02
+			Arm_Wrist_Flex_Joint_Client(arm_wrist_flex_joint_goal)
+		
+			
+		if key == 'q':
+			break
+
+
+		
